@@ -18,6 +18,8 @@ In this project, we assume the role of a video game company seeking to release g
 
 
 ```{r}
+library(faraway)
+library(car)
 vgsales = read.csv("vgsales.csv")
 ```
 
@@ -170,13 +172,84 @@ ggplot(total_sales_platform, aes(x = Platform, y = Other_Sales)) +
 *This is the section where we fit and analyze models in order to represent the data*
 
 ### Pre-Processing
-- Did we need to factorize or "dummy" variables before fitting?
+Several of our potential predictors are represented as characters, but we will want to convert them to factor variables. These include:
+* Platform
+* Genre
+* Publisher
 
+First we will filter our dataset to only include games and platforms from 2010 on, then make the character predictors into factors, and then drop levels from factor variables that have no observations (i.e. levels that are only associated with data before 2010, such as Super Nintendo game data).
 
+```{r}
+# Filter data by year and system platform
+vgsales_modern = vgsales[vgsales$Platform %in% new_platforms & vgsales$Year >= 2010 & vgsales$Year <= 2020, ]
+
+# Factorize string predictors
+vgsales_modern$Platform = as.factor(vgsales_modern$Platform)
+vgsales_modern$Genre = as.factor(vgsales_modern$Genre)
+vgsales_modern$Publisher = as.factor(vgsales_modern$Publisher)
+
+# Remove unused factor levels
+vgsales_modern = droplevels(vgsales_modern)
+```
+
+I have also decided to  combine EU_Sales, JP_Sales, and Other_Sales into a new predictor called Non_NA_Sales This is because The sales in different countries are correlated, and Global_Sales is highly correlated with the others since it is a summation, which also includes NA_Sales. I am removing the combined columns for better viewing.
+
+```{r}
+# combine sales predictors into one
+Non_NA_Sales = vgsales_modern$EU_Sales + vgsales_modern$JP_Sales + vgsales_modern$Other_Sales
+vgs_modern = cbind(vgsales_modern, Non_NA_Sales)
+vgs_modern = subset(vgsales_modern, select = -c(EU_Sales, JP_Sales, Other_Sales))
+
+str(vgs_modern)
+```
+
+*Note:* The Year predictor will be tried as a numerical variable, but for our smaller range of years a factor might be more appropriate.
 
 ### Model Selection
 *In this section, we choose a model which can represent the data most accurately*
 - Perform any tests necessary to find correlation between variables (i.e. correlation matrix)
+
+we will generate several models and compare metrics to give us a starting point on intuition.
+
+```{r}
+all_intr_mod = lm(NA_Sales ~ Platform * Year * Genre * Non_NA_Sales + Publisher, data = vgs_modern)
+all_mod = lm(NA_Sales ~ Platform + Year + Genre + Publisher + Non_NA_Sales, data = vgs_modern)
+foreign_sales_mod = lm(NA_Sales ~ Non_NA_Sales, data = vgs_modern)
+intuitive_mod = lm(NA_Sales ~ Non_NA_Sales * Platform + Non_NA_Sales * Genre + Year, data = vgs_modern)
+intuitive_mod2 = lm(NA_Sales ~ Non_NA_Sales * Platform + Non_NA_Sales * Genre + Non_NA_Sales * Publisher + Year, data = vgs_modern)
+bic_back_mod = step(all_intr_mod, direction = "backward", trace = FALSE, k = log(nrow(vgs_modern)))
+```
+
+Now we'll analyze these models and create a table
+
+```{r}
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+
+metrics_table = data.frame(
+        Model = c("all_intr_mod", "all_mod", "foreign_sales_mod", "intuitive_mod", "intuitive_mod2", "bic_back_mod"),
+        R_Squared = c(summary(all_intr_mod)$adj.r.squared,
+                    summary(all_mod)$adj.r.squared,
+                    summary(foreign_sales_mod)$adj.r.squared,
+                    summary(intuitive_mod)$adj.r.squared,
+                    summary(intuitive_mod2)$adj.r.squared,
+                    summary(bic_back_mod)$adj.r.squared),
+      RMSE = c(sqrt(mean(resid(all_intr_mod) ^ 2)),
+              sqrt(mean(resid(all_mod) ^ 2)),
+              sqrt(mean(resid(foreign_sales_mod) ^ 2)),
+              sqrt(mean(resid(intuitive_mod) ^ 2)),
+              sqrt(mean(resid(intuitive_mod2) ^ 2)),
+              sqrt(mean(resid(bic_back_mod)) ^ 2))
+      )
+
+
+metrics_table
+```
+
+Looking at the above models and their $R^2$ values, we see the large model with many fully interacting predictors has the best metric. This is unsurprising, since adding more and more predictors and interactions generally produces better predictions, but can become confusing and loses ability to interpret meaning between variables.
+
+
 
 *It might make sense to fit a few models here:*
 - Large Additive Model with all Variables `lm( y ~ ., data=data)`
@@ -209,4 +282,10 @@ In the context of our original business problem, the results indicate that it (I
 
 ## Appendix
 Should contain code and analysis that is used, but that would have otherwise cluttered the report or is not directly related to the choice of model. Do not simply dump code in here. Only utilize the appendix to supplement the primary focus of the report. The appendix should also conclude with the names of the group members.
+
+```{r}
+
+head(vgsales)
+```
+
 
