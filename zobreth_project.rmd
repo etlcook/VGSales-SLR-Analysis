@@ -1,0 +1,212 @@
+---
+title: "STAT420 Zobreth Group Project"
+author: "Brian Betancourt, Ethan Cook, Zongyu Li"
+date: "2023-07-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# North American Video Game Sales Prediction
+
+## Introduction
+In this project, we assume the role of a video game company seeking to release games in the North American market for the first time. Given historical data regarding video game sales from other companies, we will use this data to predict our own successes (or follies) in the North American market and provide an informed decision to our company leadership regarding the potential risks in doing so.
+
+### Exploring The Data
+
+
+```{r}
+vgsales = read.csv("vgsales.csv")
+```
+
+The data is stored as a `csv` file containing `r nrow(vgsales)` rows across `r ncol(vgsales)` columns (or predictors), and includes data from 1980 to 2020.
+
+
+The data is largely "clean" and does not contain missing or "null" values, with the exception of the `Year` column which contains approximately `1.63%` null values.
+
+```{r}
+# null values per column
+na_count = colSums(is.na(vgsales))
+# proportion of NA values in each column
+na_proportion = na_count / nrow(vgsales) * 100
+# table/dataframe for readability
+na_records = data.frame(Count = na_count, Proportion = na_proportion)
+print(na_records)
+```
+
+The predictors have the following datatypes:
+
+```{r}
+str(vgsales)
+```
+- **Rank**: 
+- *Name*: This is the title of a given video game
+- *Platform*: This corresponds to the console the video game is released for
+**Note**: It is possible that a video game may be released for more than one console simultaneously.
+- *Year*: The year the video game was released
+- *Publisher*: Company which published the video game
+- *NA_Sales*: Number of sales in North America (in *millions of units sold*)
+- *EU_Sales*: Number of sales in Europe (in *millions of units sold*)
+- *JP_Sales*: Number of sales in Japan (in *millions of units sold*)
+- *Other_Sales*: Number of sales in regions of the world outside of North America, Europe, and Japan (in *millions of units sold*)
+- *Global_Sales*: Total Number of sales, globally (in *millions of units sold*)
+
+#### Data Tendency
+
+*What do sales look like, on average, for each geographic area and based on platform?*
+```{r}
+mean_sales_platform = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Platform, vgsales, mean)
+print(mean_sales_platform)
+```
+
+*Assuming our company only cares about platforms from 2010 onward, can we focus on newer systems?*
+```{r}
+# utilizing domain knowledge to filter platforms to only newer ones
+new_platforms = c('X360', 'Wii', 'WiiU', 'XOne', 'PS3', 'PS4', 'PSV')
+  # Filter data frame to include only specified platforms
+vgsales_filtered = vgsales[vgsales$Platform %in% new_platforms, ]
+
+mean_sales_platform_filtered = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Platform, vgsales_filtered, mean)
+print(mean_sales_platform_filtered)
+
+```
+
+Of the newer platforms, which are most popular in each geographic region?
+```{r}
+# Find the platforms with highest mean sales in each region
+highest_EU_platform = mean_sales_platform_filtered$Platform[which.max(mean_sales_platform_filtered$EU_Sales)]
+highest_JP_platform = mean_sales_platform_filtered$Platform[which.max(mean_sales_platform_filtered$JP_Sales)]
+highest_Other_platform = mean_sales_platform_filtered$Platform[which.max(mean_sales_platform_filtered$Other_Sales)]
+
+highest_EU_sales = max(mean_sales_platform_filtered$EU_Sales)
+highest_JP_sales = max(mean_sales_platform_filtered$JP_Sales)
+highest_Other_sales <- max(mean_sales_platform_filtered$Other_Sales)
+
+cat("Platform with highest mean sales in EU: ", highest_EU_platform, " (", highest_EU_sales, ")", "\n")
+cat("Platform with highest mean sales in JP: ", highest_JP_platform, " (", highest_JP_sales, ")", "\n")
+cat("Platform with highest mean sales in Other regions: ", highest_Other_platform, "(", highest_Other_sales, ")", "\n")
+```
+
+#### Data Distribution
+
+Sales by Genre
+```{r}
+library(ggplot2)
+
+# EU Sales
+ggplot(total_sales_genre, aes(x = Genre, y = EU_Sales)) +
+  geom_bar(stat = "identity", fill = "lightblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Genre", y = "Sales", title = "Total EU Sales by Genre")
+
+# JP Sales
+ggplot(total_sales_genre, aes(x = Genre, y = JP_Sales)) +
+  geom_bar(stat = "identity", fill = "lightblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Genre", y = "Sales", title = "Total JP Sales by Genre")
+
+# Other Sales
+ggplot(total_sales_genre, aes(x = Genre, y = Other_Sales)) +
+  geom_bar(stat = "identity", fill = "lightblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Genre", y = "Sales", title = "Total Other Region Sales by Genre")
+
+```
+
+
+
+### Data Trends
+
+Total Sales by Year and Geographic Region
+```{r}
+# convert year (currently chr)
+vgsales$Year = as.numeric(vgsales$Year)
+
+# 2010 onward filter
+vgsales_current = vgsales[vgsales$Year >= 2010, ]
+
+# Calculate total sales using the filtered data frame
+total_sales_year = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Year, vgsales_current, sum)
+
+library(ggplot2)
+ggplot(total_sales_year, aes(x = as.numeric(Year))) +
+  geom_line(aes(y = JP_Sales, color = "JP_Sales")) +
+  geom_line(aes(y = EU_Sales, color = "EU_Sales")) +
+  geom_line(aes(y = Other_Sales, color = "Other_Sales")) +
+  labs(color = "Region", y = "Total Sales", title = "Yearly Sales by Region")
+
+```
+
+
+Total Sales by Platform (2010-2020)
+```{r}
+library(ggplot2)
+
+# year filter
+vgsales_current = vgsales[vgsales$Year >= 2010 & vgsales$Year <= 2020, ]
+total_sales_platform = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Platform, vgsales_current, sum)
+
+ggplot(total_sales_platform, aes(x = Platform, y = JP_Sales)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text()) +
+  labs(title = "Total JP Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
+
+ggplot(total_sales_platform, aes(x = Platform, y = EU_Sales)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text()) +
+  labs(title = "Total EU Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
+
+ggplot(total_sales_platform, aes(x = Platform, y = Other_Sales)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text()) +
+  labs(title = "Total Other Region Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
+
+
+```
+
+## Methods
+*This is the section where we fit and analyze models in order to represent the data*
+
+### Pre-Processing
+- Did we need to factorize or "dummy" variables before fitting?
+
+
+
+### Model Selection
+*In this section, we choose a model which can represent the data most accurately*
+- Perform any tests necessary to find correlation between variables (i.e. correlation matrix)
+
+*It might make sense to fit a few models here:*
+- Large Additive Model with all Variables `lm( y ~ ., data=data)`
+- Large Model with all possible interactions `lm( y ~ .^2, data=data)`
+- Models informed by an intuition or Hypothesis (our instinct is to say that variable y is likely to be predictive)
+
+*Consider evaluating the assumptions of the model/data to see if they hold true*
+*Consider the implications for our model if they do not hold true*
+- Q-Q Plot
+- Shapiro Test
+
+*Consider optimizing feature selection using stepwise AIC/BIC and be able to explain why this model should be the best*
+*Comment on any predictor interactions or transformations used*
+
+## Results
+*Numerical or graphical summaries of your results.*
+*You should report a final model you have chosen. There is not necessarily one, singular correct model, but certainly some methods and models are better than others in certain situations. You may use any methods we studied this semester to complete this task, and provide evidence that your final choice of model is a good one. *
+
+## Discussion
+In the context of our original business problem, the results indicate that it (IS/IS NOT) in the interest of our video game company to enter the North American market. This conclusion is informed by:
+- Reason A
+- Reason B
+- Reason C
+
+*In this paragraph, we can explain Reason A* We can use graphics here as necessary, and we can explain the significance of this graph/test/analysis in the context of our company.
+
+*In this paragraph, we can explain Reason B* We can use graphics here as necessary, and we can explain the significance of this graph/test/analysis in the context of our company.
+
+*In this paragraph, we can explain Reason C* We can use graphics here as necessary, and we can explain the significance of this graph/test/analysis in the context of our company.
+
+## Appendix
+Should contain code and analysis that is used, but that would have otherwise cluttered the report or is not directly related to the choice of model. Do not simply dump code in here. Only utilize the appendix to supplement the primary focus of the report. The appendix should also conclude with the names of the group members.
+
