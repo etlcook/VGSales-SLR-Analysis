@@ -304,6 +304,64 @@ Looking at the above models and their $R^2$ values, we see the large model with 
 *Numerical or graphical summaries of your results.*
 *You should report a final model you have chosen. There is not necessarily one, singular correct model, but certainly some methods and models are better than others in certain situations. You may use any methods we studied this semester to complete this task, and provide evidence that your final choice of model is a good one. *
 
+In the following figures, we show bar plots for the R^2 values and RMSE. We observe that for "all_intr_mod", "foreign_sales_mod" and "intuitive_mod2" and "bic_back_mod" have the highest R^2 values. For the RMSE bar plot, it's interesting to observe that the "foreign_sales_mod" has RMSE closer to 0, while "all_intr_mod", "intuitive_mod2" and "bic_back_mod" have slight higher RMSE values. 
+```{r}
+# Install and load required libraries
+# Install and load required libraries (if not already installed and loaded)
+install.packages("tidyverse")
+library(tidyverse)
+
+# Given data
+data <- data.frame(
+  Model = c("all_intr_mod", "all_mod", "foreign_sales_mod", "intuitive_mod", "intuitive_mod2", "bic_back_mod"),
+  R_Squared = c(0.8531991, 0.6146540, 0.5695697, 0.8135079, 0.8532400, 0.8254627),
+  RMSE = c(2.380367e-01, 4.064571e-01, 4.427398e-01, 2.900292e-01, 2.455912e-01, 5.198306e-17)
+)
+
+# Reshape the data to a long format using gather (tidyr)
+data_long <- data %>%
+  gather(metric, value, -Model)
+
+# Install and load required libraries (if not already installed and loaded)
+install.packages("ggplot2")
+library(ggplot2)
+
+# Bar plot for R_Squared
+ggplot(data_long[data_long$metric == "R_Squared", ], aes(x = Model, y = value)) +
+  geom_col(fill = "blue") +
+  labs(x = "Model", y = "R_Squared") +
+  ggtitle("R_Squared for Different Models") +
+  theme_minimal()
+
+# Bar plot for RMSE
+ggplot(data_long[data_long$metric == "RMSE", ], aes(x = Model, y = value)) +
+  geom_col(fill = "green") +
+  labs(x = "Model", y = "RMSE") +
+  ggtitle("RMSE for Different Models") +
+  theme_minimal()
+
+```
+
+To conduct a comprehensive comparison of the four models, namely "all_intr_mod," "foreign_sales_mod," "intuitive_mod2," and "bic_back_mod," we conducted ANOVA tests on each of them. Our primary objective was to determine if the statistical evidence from the ANOVA tests would support the notion that "bic_back_mod" exhibits superior performance when compared to the other three models. From the following tables, we see that all p-values are significant. This means that the "bic_back_mod" is statistically superior to the other three models, "all_intr_mod", "foreign_sales_mod" and "intuitive_mod2" based on the ANOVA tests.
+```{r}
+anova_results_all_intr <- anova(all_intr_mod, bic_back_mod)
+anova_results_foreign_sales <- anova(foreign_sales_mod, bic_back_mod)
+anova_results_intuitive <- anova(intuitive_mod2, bic_back_mod)
+
+# Print the ANOVA tables
+print("ANOVA test results for all_intr_mod and bic_back_mod:")
+print(anova_results_all_intr)
+
+print("ANOVA test results for foreign_sales_mod and bic_back_mod:")
+print(anova_results_foreign_sales)
+
+print("ANOVA test results for intuitive_mod2 and bic_back_mod:")
+print(anova_results_intuitive)
+
+```
+
+The "bic_back_mod" model's improved performance can be attributed to its inclusion of the interaction terms (Platform:Year, Platform:Non_NA_Sales, Year:Non_NA_Sales, and Genre:Non_NA_Sales), which allowed for a more accurate and nuanced representation of the relationship between the predictors and the response variable, NA_Sales. Moreover, the incorporation of Non_NA_Sales as an additional predictor further enhanced the model's predictive capabilities.
+
 ## Discussion
 In the context of our original business problem, the results indicate that it (IS/IS NOT) in the interest of our video game company to enter the North American market. This conclusion is informed by:
 - Reason A
