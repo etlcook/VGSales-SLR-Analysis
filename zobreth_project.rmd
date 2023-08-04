@@ -38,6 +38,42 @@ na_records = data.frame(Count = na_count, Proportion = na_proportion)
 print(na_records)
 ```
 
+We will also check for any unconventional data (i.e. non-numeric or date types in the `Year` predictor). 
+
+Given that there appear to be a low number of records (271, or approximately 1.63% of the total dataset), we cast `Year` to be a numeric datatype for ease of use in modeling and we filter our dataset to remove these N/A records.
+```{r}
+# check non-numeric values in Year
+unique(vgsales$Year[!grepl("^\\d+$", vgsales$Year)])
+
+# count of "N/A" values in Year column
+na_count = sum(vgsales$Year == "N/A")
+# proportion of "N/A" values in Year column
+na_proportion = na_count / nrow(vgsales) * 100
+
+# print count and proportion
+print(paste("Count of 'N/A' in Year: ", na_count))
+print(paste("Proportion of 'N/A' in Year (%): ", na_proportion))
+
+# filter the dataset
+vgsales = vgsales[vgsales$Year != "N/A",]
+
+# cast datatype
+vgsales$Year = as.numeric(vgsales$Year)
+```
+
+It appear also that our `Year` values seem to trail off after 2016, so we can remove records from the dataset where year is > 2016
+```{r}
+# aggregate by year
+global_sales_year = aggregate(Global_Sales ~ Year, vgsales, sum)
+
+# plot
+barplot(height = global_sales_year$Global_Sales, names.arg = global_sales_year$Year, xlab = "Year", ylab = "Total Sales (in millions)",main = "Total Sales (Global) by Year", las = 2,cex.names = 0.7) 
+
+# filter dataset
+vgsales = subset(vgsales, Year <= 2016)
+
+```
+
 The predictors have the following datatypes:
 
 ```{r}
@@ -63,10 +99,12 @@ mean_sales_platform = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Platfor
 print(mean_sales_platform)
 ```
 
-*Assuming our company only cares about platforms from 2010 onward, can we focus on newer systems?*
+**Assuming our company only cares about platforms from 2010 onward, we can focus on newer systems**
+
+Below we can observe the average sales for each platform from 2010 to 2016
 ```{r}
 # utilizing domain knowledge to filter platforms to only newer ones
-new_platforms = c('X360', 'Wii', 'WiiU', 'XOne', 'PS3', 'PS4', 'PSV')
+new_platforms = c('X360', 'Wii', 'WiiU', 'XOne', 'PS3', 'PS4', 'PSV', '3DS', 'PC')
   # Filter data frame to include only specified platforms
 vgsales_filtered = vgsales[vgsales$Platform %in% new_platforms, ]
 
@@ -74,6 +112,7 @@ mean_sales_platform_filtered = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) 
 print(mean_sales_platform_filtered)
 
 ```
+
 
 Of the newer platforms, which are most popular in each geographic region?
 ```{r}
@@ -93,27 +132,24 @@ cat("Platform with highest mean sales in Other regions: ", highest_Other_platfor
 
 #### Data Distribution
 
+
 Sales by Genre
 ```{r}
 library(ggplot2)
 
+# Aggregate total sales
+eusales_agg = aggregate(EU_Sales ~ Genre, vgsales, sum)
+jpsales_agg = aggregate(JP_Sales ~ Genre, vgsales, sum)
+othersales_agg = aggregate(Other_Sales ~ Genre, vgsales, sum)
+
 # EU Sales
-ggplot(total_sales_genre, aes(x = Genre, y = EU_Sales)) +
-  geom_bar(stat = "identity", fill = "lightblue", color = "black") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(x = "Genre", y = "Sales", title = "Total EU Sales by Genre")
+ggplot(eusales_agg, aes(x = Genre, y = EU_Sales)) +geom_bar(stat = "identity", fill = "lightblue", color = "black") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(x = "Genre", y = "Sales (in millions)", title = "Total EU Sales by Genre")
 
 # JP Sales
-ggplot(total_sales_genre, aes(x = Genre, y = JP_Sales)) +
-  geom_bar(stat = "identity", fill = "lightblue", color = "black") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(x = "Genre", y = "Sales", title = "Total JP Sales by Genre")
+ggplot(jpsales_agg, aes(x = Genre, y = JP_Sales)) + geom_bar(stat = "identity", fill = "lightblue", color = "black") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(x = "Genre", y = "Sales (in millions)", title = "Total JP Sales by Genre")
 
 # Other Sales
-ggplot(total_sales_genre, aes(x = Genre, y = Other_Sales)) +
-  geom_bar(stat = "identity", fill = "lightblue", color = "black") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(x = "Genre", y = "Sales", title = "Total Other Region Sales by Genre")
+ggplot(othersales_agg, aes(x = Genre, y = Other_Sales)) + geom_bar(stat = "identity", fill = "lightblue", color = "black") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(x = "Genre", y = "Sales (in millions)", title = "Total Other Sales by Genre")
 
 ```
 
@@ -137,7 +173,7 @@ ggplot(total_sales_year, aes(x = as.numeric(Year))) +
   geom_line(aes(y = JP_Sales, color = "JP_Sales")) +
   geom_line(aes(y = EU_Sales, color = "EU_Sales")) +
   geom_line(aes(y = Other_Sales, color = "Other_Sales")) +
-  labs(color = "Region", y = "Total Sales", title = "Yearly Sales by Region")
+  labs(color = "Region", x="Year", y = "Total Sales", title = "Yearly Sales by Region")
 
 ```
 
