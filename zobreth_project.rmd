@@ -16,10 +16,13 @@ In this project, we assume the role of a video game company seeking to release g
 
 ### Exploring The Data
 
-
+Required library, data imports.
 ```{r}
 library(faraway)
 library(car)
+library(ggplot2)
+#install.packages("tidyverse") # uncomment if needing to download the package first
+library(tidyverse)
 vgsales = read.csv("vgsales.csv")
 ```
 
@@ -105,7 +108,7 @@ Below we can observe the average sales for each platform from 2010 to 2016
 ```{r}
 # utilizing domain knowledge to filter platforms to only newer ones
 new_platforms = c('X360', 'Wii', 'WiiU', 'XOne', 'PS3', 'PS4', 'PSV', '3DS', 'PC')
-  # Filter data frame to include only specified platforms
+# filter data frame to include only specified platforms
 vgsales_filtered = vgsales[vgsales$Platform %in% new_platforms, ]
 
 mean_sales_platform_filtered = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Platform, vgsales_filtered, mean)
@@ -135,7 +138,6 @@ cat("Platform with highest mean sales in Other regions: ", highest_Other_platfor
 
 Sales by Genre
 ```{r}
-library(ggplot2)
 
 # Aggregate total sales
 eusales_agg = aggregate(EU_Sales ~ Genre, vgsales, sum)
@@ -168,44 +170,28 @@ vgsales_current = vgsales[vgsales$Year >= 2010, ]
 # Calculate total sales using the filtered data frame
 total_sales_year = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Year, vgsales_current, sum)
 
-library(ggplot2)
-ggplot(total_sales_year, aes(x = as.numeric(Year))) +
-  geom_line(aes(y = JP_Sales, color = "JP_Sales")) +
-  geom_line(aes(y = EU_Sales, color = "EU_Sales")) +
-  geom_line(aes(y = Other_Sales, color = "Other_Sales")) +
-  labs(color = "Region", x="Year", y = "Total Sales", title = "Yearly Sales by Region")
+ggplot(total_sales_year, aes(x = as.numeric(Year))) + geom_line(aes(y = JP_Sales, color = "JP_Sales")) + geom_line(aes(y = EU_Sales, color = "EU_Sales")) + geom_line(aes(y = Other_Sales, color = "Other_Sales")) + labs(color = "Region", x="Year", y = "Total Sales", title = "Yearly Sales by Region")
 
 ```
 
 
 Total Sales by Platform (2010-2020)
 ```{r}
-library(ggplot2)
 
 # year filter
 vgsales_current = vgsales[vgsales$Year >= 2010 & vgsales$Year <= 2020, ]
 total_sales_platform = aggregate(cbind(EU_Sales, JP_Sales, Other_Sales) ~ Platform, vgsales_current, sum)
 
-ggplot(total_sales_platform, aes(x = Platform, y = JP_Sales)) +
-  geom_bar(stat="identity") +
-  theme(axis.text.x = element_text()) +
-  labs(title = "Total JP Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
+ggplot(total_sales_platform, aes(x = Platform, y = JP_Sales)) + geom_bar(stat="identity") + theme(axis.text.x = element_text()) + labs(title = "Total JP Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
 
-ggplot(total_sales_platform, aes(x = Platform, y = EU_Sales)) +
-  geom_bar(stat="identity") +
-  theme(axis.text.x = element_text()) +
-  labs(title = "Total EU Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
+ggplot(total_sales_platform, aes(x = Platform, y = EU_Sales)) + geom_bar(stat="identity") + theme(axis.text.x = element_text()) + labs(title = "Total EU Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
 
-ggplot(total_sales_platform, aes(x = Platform, y = Other_Sales)) +
-  geom_bar(stat="identity") +
-  theme(axis.text.x = element_text()) +
-  labs(title = "Total Other Region Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
+ggplot(total_sales_platform, aes(x = Platform, y = Other_Sales)) + geom_bar(stat="identity") + theme(axis.text.x = element_text()) + labs(title = "Total Other Region Sales by Platform (2010-2020)", x = "Platform", y = "Sales")
 
 
 ```
 
 ## Methods
-*This is the section where we fit and analyze models in order to represent the data*
 
 ### Pre-Processing
 Several of our potential predictors are represented as characters, but we will want to convert them to factor variables. These include:  
@@ -225,7 +211,14 @@ vgsales_current$Publisher = as.factor(vgsales_current$Publisher)
 vgsales_modern = droplevels(vgsales_current)
 ```
 
-I have also decided to  combine EU_Sales, JP_Sales, and Other_Sales into a new predictor called Non_NA_Sales This is because The sales in different countries are correlated, and Global_Sales is highly correlated with the others since it is an aggregation, which also includes NA_Sales. I am removing the combined columns for better viewing.
+```{r}
+# run a correlation matrix on only the numeric predictors
+numeric_cols = sapply(vgsales_modern, is.numeric)
+numeric_vgsales_modern = vgsales_modern[,numeric_cols]
+cor(numeric_vgsales_modern)
+```
+
+We have also decided to combine EU_Sales, JP_Sales, and Other_Sales into a new predictor called Non_NA_Sales. This is because sales in different countries are correlated (see correlation table above), and Global_Sales is highly correlated with the others since it is an aggregation, which also includes NA_Sales. I am removing the combined columns for better viewing.
 
 ```{r}
 # combine sales predictors into one
@@ -242,7 +235,7 @@ str(vgs_modern)
 *In this section, we choose a model which can represent the data most accurately*
 - Perform any tests necessary to find correlation between variables (i.e. correlation matrix)
 
-we will generate several models and compare metrics to give us a starting point on intuition.
+We will generate several models and compare metrics to give us a starting point on intuition. For all models, `NA_Sales` is the response term and represents the units sold in North America.
 
 ```{r}
 all_intr_mod = lm(NA_Sales ~ Platform * Year * Genre * Non_NA_Sales + Publisher, data = vgs_modern)
@@ -253,7 +246,7 @@ intuitive_mod2 = lm(NA_Sales ~ Non_NA_Sales * Platform + Non_NA_Sales * Genre + 
 bic_back_mod = step(all_intr_mod, direction = "backward", trace = FALSE, k = log(nrow(vgs_modern)))
 ```
 
-The intuitive models above were chosen using experience as a customer of video games and a previous salesman. The first, "intuitive_mod", posits that there are interactions between global non-NA sales and the platform/genre of the game. Platforms and genres can vary a lot in popularity and so I am accounting for different coefficients needed for the different factor levels.
+The intuitive models above were chosen using experience as a customer of video games and a previous salesman. "intuitive_mod", posits that there are interactions between global non-NA sales and the platform/genre of the game. Platforms and genres can vary a lot in popularity and so I am accounting for different coefficients needed for the different factor levels.
 
 The 2nd intuitive model, "intuitive_mod2", is similar to the first but includes an interaction between global non-NA sales and the video game publisher. This is based off of the understanding that there are big-name publishers that always produce more sales (profit not being a factor) and smaller independent publishers with more modest sales. As seen in later tests, this interaction gives the model a large boost in prediction accuracy without making it much more confusing.
 
@@ -271,6 +264,7 @@ Now we will test the assumptions of a SLR model. Generating a Q-Q plot for each 
 qqnorm(resid(intuitive_mod2))
 qqline(resid(intuitive_mod2), col = "red", lwd = 2)
 stest = shapiro.test(resid(intuitive_mod2)[1:5000])
+stest
 ```
 Clearly, the errors of our model are not normally distributed, as the plot shows trailing tails at both ends. The Shapiro-Wilkes test concurs by giving an extremely small p-value of `r stest$p.value`. *Note: we had to exclude 141 of the 5141 residuals dues to limitations of the shapiro.test function*.
 
@@ -278,7 +272,9 @@ Clearly, the errors of our model are not normally distributed, as the plot shows
 *Numerical or graphical summaries of your results.*
 *You should report a final model you have chosen. There is not necessarily one, singular correct model, but certainly some methods and models are better than others in certain situations. You may use any methods we studied this semester to complete this task, and provide evidence that your final choice of model is a good one. *
 
-In the following figures, we show bar plots for the R^2 values and RMSE. We observe that for "all_intr_mod", "bic_back_mod" and "intuitive_mod" and "intuitive_mod2" have the highest R^2 values. For the RMSE bar plot, these 4 models also have the lowest RMSE. 
+
+In the following figures, we show bar plots for the R^2 values and RMSE. We observe that for "all_intr_mod", "foreign_sales_mod" and "intuitive_mod2" and "bic_back_mod" have the highest R^2 values. For the RMSE bar plot, it's interesting to observe that the "foreign_sales_mod" has RMSE closer to 0, while "all_intr_mod", "intuitive_mod2" and "bic_back_mod" have slight higher RMSE values. 
+
 
 ```{r}
 # Given data
@@ -302,10 +298,6 @@ data <- data.frame(
 data_long <- data %>%
   gather(metric, value, -Model)
 
-# Install and load required libraries (if not already installed and loaded)
-# install.packages("ggplot2")
-library(ggplot2)
-
 # Bar plot for R_Squared
 ggplot(data_long[data_long$metric == "R_Squared", ], aes(x = Model, y = value)) +
   geom_col(fill = "blue") +
@@ -324,8 +316,8 @@ ggplot(data_long[data_long$metric == "RMSE", ], aes(x = Model, y = value)) +
 
 Looking at the above charts values, we see the large model with many fully interacting predictors has the best metrics. This is unsurprising, since adding more and more predictors and interactions generally produces better predictions, but can become confusing and loses ability to interpret meaning between variables.
 
-To conduct a comprehensive comparison of the four models, namely "all_intr_mod", "bic_back_mod" and "intuitive_mod" and "bic_back_mod2". We conducted ANOVA tests on each pair of them. From the following tables, we see that all p-values are significant. A positive "Sum of Sq" indicates that Model 1 explains more variance than Model 2. Conversely, a negative "Sum of Sq" indicates that Model 2 explains more variance than Model 1. By referring to the table, we have "all_intr_mod" having better performance than "bic_back_mod", "intuitive_mod" and "intuitive_mod2". Then we have "intuitive_mod2" having statically  better performance than "bic_back_mod" and "intuitive_mod1". In the end, we have "bic_back_mod" having better performance than "intuitive_mod1". In summary, we can rank the best performing modeling to the least performance model as following "all_intr_mod">"intuitive_mod2">"bic_back_mod">"intuitive_mod1". 
 
+To conduct a comprehensive comparison of the four models, namely "all_intr_mod," "foreign_sales_mod," "intuitive_mod2," and "bic_back_mod," we conducted ANOVA tests on each of them. Our primary objective was to determine if the statistical evidence from the ANOVA tests would support the notion that "bic_back_mod" exhibits superior performance when compared to the other three models. From the following tables, we see that all p-values are significant, assuming a threshold $\alpha=0.05$. This means that the "bic_back_mod" is statistically superior to the other three models, "all_intr_mod", "foreign_sales_mod" and "intuitive_mod2" based on the ANOVA tests.
 
 ```{r}
 
@@ -361,18 +353,34 @@ print(anova6)
 The "all_intr_mod" model's improved performance can be attributed to its inclusion of the interaction terms, which allowed for a more accurate and nuanced representation of the relationship between the predictors and the response variable, NA_Sales. 
 
 ## Discussion
-In the context of our original business problem, the results indicate that it (IS/IS NOT) in the interest of our video game company to enter the North American market. This conclusion is informed by:
-- Reason A
-- Reason B
-- Reason C
+In the context of our original business problem, the statistical results were generated to support our interest of our video game company to enter the North American market. Our most predictive model was `bic_back_mod`, the model chosen using backwards stepwise predictor selection with Bayesian Information Criterion (BIC). 
 
-*In this paragraph, we can explain Reason A* We can use graphics here as necessary, and we can explain the significance of this graph/test/analysis in the context of our company.
+```{r}
+summary(bic_back_mod)
+```
 
-*In this paragraph, we can explain Reason B* We can use graphics here as necessary, and we can explain the significance of this graph/test/analysis in the context of our company.
+Taking a look at the test statistics and associated P-Values for the predictors in this model, we can attempt to take a peek into what might be considered a "translucent box" in terms of the model's inner workings. For example, we can see quite a few interactions which have positive Estimates and statistically significant P-Values (again, assuming $\alpha=0.05$) such as:
+- PlatformWii
+- GenreSports
+- GenreShooter
+These findings suggest that games on the Wii platform, as well as games which are of the genres "Sports" or "Shooter" were found to be highly predictive in estimating sales. 
 
-*In this paragraph, we can explain Reason C* We can use graphics here as necessary, and we can explain the significance of this graph/test/analysis in the context of our company.
+Several interactions which utilized the `Year` predictor were also found to be statistically significant, such as:
+- PlatformWii:Year
+- PlatformPS3:Year:Non_NA_Sales
+- PlatformPS4:Year:Non_NA_Sales
+The slightly-positive Estimates for these terms possibly suggest that sales increased with subsequent years for these platforms, outside of North America.
+
+However, it is important to restrain our interpretations with the knowledge that linear statistical models function predicated on the assumption of "LINE": Linearity, Independence, Normality, and Equal Variance (homoscedasticity). Based on the Fitted vs. Residuals plot, QQ-Plot, and Shapiro-Wilkes test performed earlier prior to model selection, we know that these assumptions do not hold true. For example, we cannot assume equal variance of residual for all predictor values, and we cannot assume that the residuals follow a normal distribution when we are already confident that they do not.
+
+Given the findings from our best model, given that that model is highly-complex and somewhat challenging to interpert (due to its' complexity and possible overfitting), and combined with the knowledge that the underlying data does not follow the typical assumptions of a linear model, **we recommend that our company pursue developing and releasing video games for the North American market for Nintendo platforms, and in the genres of "Sports" and "Shooter".** This is based on the significance of terms associated with these genres as well as with the Wii and DS (a portable Nintendo system) platforms. This recommendation is informed by our knowledge that this dataset is also limited to video game sales prior to 2016, and would have no knowledge of current Nintendo platforms such as the Nintendo Switch. 
+
+We also recommend concurrently that our data analysis team find, extract, and repeat this model using new data which incorporates video game sales from 2016 to 2023. We would expect new models to suggest growth potential in Nintendo platforms in these genres consistent with our findings.
+
+
 
 ## Appendix
-Should contain code and analysis that is used, but that would have otherwise cluttered the report or is not directly related to the choice of model. Do not simply dump code in here. Only utilize the appendix to supplement the primary focus of the report. The appendix should also conclude with the names of the group members.
 
+Group Members:
 ### Ethan Cook, Brian Betancourt, Zongyu Li
+
