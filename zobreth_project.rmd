@@ -314,10 +314,9 @@ ggplot(data_long[data_long$metric == "RMSE", ], aes(x = Model, y = value)) +
 
 ```
 
-Looking at the above charts values, we see the large model with many fully interacting predictors has the best metrics. This is unsurprising, since adding more and more predictors and interactions generally produces better predictions, but can become confusing and loses ability to interpret meaning between variables.
+Looking at the above chart's values, we see the large model with many fully interacting predictors has the best metrics. This is unsurprising, since adding more and more predictors and interactions generally produces better predictions, but can become confusing and loses ability to interpret meaning between variables.
 
-
-To conduct a comprehensive comparison of the four models, namely "all_intr_mod," "foreign_sales_mod," "intuitive_mod2," and "bic_back_mod," we conducted ANOVA tests on each of them. Our primary objective was to determine if the statistical evidence from the ANOVA tests would support the notion that "bic_back_mod" exhibits superior performance when compared to the other three models. From the following tables, we see that all p-values are significant, assuming a threshold $\alpha=0.05$. This means that the "bic_back_mod" is statistically superior to the other three models, "all_intr_mod", "foreign_sales_mod" and "intuitive_mod2" based on the ANOVA tests.
+To conduct a comprehensive comparison of the four models, namely "all_intr_mod", "bic_back_mod" and "intuitive_mod" and "bic_back_mod2". We conducted ANOVA tests on each pair of them. From the following tables, we see that all p-values are significant. A positive "Sum of Sq" indicates that Model 1 explains more variance than Model 2. Conversely, a negative "Sum of Sq" indicates that Model 2 explains more variance than Model 1. By referring to the table, we have "all_intr_mod" having better performance than "bic_back_mod", "intuitive_mod" and "intuitive_mod2". Then we have "intuitive_mod2" having statically better performance than "bic_back_mod" and "intuitive_mod1". In the end, we have "bic_back_mod" having better performance than "intuitive_mod1". In summary, we can rank the best-performing modeling to the least-performance model as follows "all_intr_mod">"intuitive_mod2">"bic_back_mod">"intuitive_mod1". 
 
 ```{r}
 
@@ -351,6 +350,7 @@ print(anova6)
 ```
 
 The "all_intr_mod" model's improved performance can be attributed to its inclusion of the interaction terms, which allowed for a more accurate and nuanced representation of the relationship between the predictors and the response variable, NA_Sales. 
+
 
 ## Discussion
 In the context of our original business problem, the statistical results were generated to support our interest of our video game company to enter the North American market. Our most predictive model was `bic_back_mod`, the model chosen using backwards stepwise predictor selection with Bayesian Information Criterion (BIC). 
