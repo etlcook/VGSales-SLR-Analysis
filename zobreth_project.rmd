@@ -358,7 +358,7 @@ In the context of our original business problem, the statistical results were ge
 ```{r}
 options(max.print=100000)
 summary(all_intr_mod)
-```
+```  
 
 The model itself is complex, with test statistics calculated for each possible term interaction. This presents issues in terms of interpretability, and its' accuracy relative to other models can be considered a trade-off when compared to the relative simplicity of a more intuitive model with an acceptable level of accuracy.
 
