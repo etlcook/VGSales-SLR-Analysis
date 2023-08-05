@@ -269,12 +269,7 @@ stest
 Clearly, the errors of our model are not normally distributed, as the plot shows trailing tails at both ends. The Shapiro-Wilkes test concurs by giving an extremely small p-value of `r stest$p.value`. *Note: we had to exclude 141 of the 5141 residuals dues to limitations of the shapiro.test function*.
 
 ## Results
-*Numerical or graphical summaries of your results.*
-*You should report a final model you have chosen. There is not necessarily one, singular correct model, but certainly some methods and models are better than others in certain situations. You may use any methods we studied this semester to complete this task, and provide evidence that your final choice of model is a good one. *
-
-
-In the following figures, we show bar plots for the R^2 values and RMSE. We observe that for "all_intr_mod", "foreign_sales_mod" and "intuitive_mod2" and "bic_back_mod" have the highest R^2 values. For the RMSE bar plot, it's interesting to observe that the "foreign_sales_mod" has RMSE closer to 0, while "all_intr_mod", "intuitive_mod2" and "bic_back_mod" have slight higher RMSE values. 
-
+In the following figures, we show bar plots for the R^2 values and RMSE. We observe that for “all_intr_mod”, “bic_back_mod” and “intuitive_mod” and “intuitive_mod2" have the highest R^2 values. For the RMSE bar plot, these 4 models also have the lowest RMSE.
 
 ```{r}
 # Given data
@@ -355,11 +350,6 @@ The "all_intr_mod" model's improved performance can be attributed to its inclusi
 ## Discussion
 In the context of our original business problem, the statistical results were generated to support our interest of our video game company to enter the North American market. Our most predictive model was `all_intr_mod`, the most advanced model which utilized all possible interactions.
 
-```{r}
-options(max.print=100000)
-summary(all_intr_mod)
-```  
-
 The model itself is complex, with test statistics calculated for each possible term interaction. This presents issues in terms of interpretability, and its' accuracy relative to other models can be considered a trade-off when compared to the relative simplicity of a more intuitive model with an acceptable level of accuracy.
 
 Taking a look at the test statistics and associated P-Values for the predictors in this model, we can attempt to take a peek into what might be considered a "translucent box" in terms of the model's inner workings. For example, we can see quite a few interactions which have positive Estimates and statistically significant P-Values (again, assuming $\alpha=0.05$) such as:
@@ -373,9 +363,6 @@ These findings suggest that:
 
 While these findings may be interesting, we can also examine the results from another model we tested: `bic_back_mod`, the model chosen using backwards stepwise predictor selection with Bayesian Information Criterion (BIC). 
 
-```{r}
-summary(bic_back_mod)
-```
 
 In a similar fashion to our most predictive model, we can note positive Estimates and significant P-Values for various predictors:
 - PlatformWii
