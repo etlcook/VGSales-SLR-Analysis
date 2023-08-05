@@ -353,13 +353,31 @@ print(anova6)
 The "all_intr_mod" model's improved performance can be attributed to its inclusion of the interaction terms, which allowed for a more accurate and nuanced representation of the relationship between the predictors and the response variable, NA_Sales. 
 
 ## Discussion
-In the context of our original business problem, the statistical results were generated to support our interest of our video game company to enter the North American market. Our most predictive model was `bic_back_mod`, the model chosen using backwards stepwise predictor selection with Bayesian Information Criterion (BIC). 
+In the context of our original business problem, the statistical results were generated to support our interest of our video game company to enter the North American market. Our most predictive model was `all_intr_mod`, the most advanced model which utilized all possible interactions.
+
+```{r}
+options(max.print=100000)
+summary(all_intr_mod)
+```
+
+The model itself is complex, with test statistics calculated for each possible term interaction. This presents issues in terms of interpretability, and its' accuracy relative to other models can be considered a trade-off when compared to the relative simplicity of a more intuitive model with an acceptable level of accuracy.
+
+Taking a look at the test statistics and associated P-Values for the predictors in this model, we can attempt to take a peek into what might be considered a "translucent box" in terms of the model's inner workings. For example, we can see quite a few interactions which have positive Estimates and statistically significant P-Values (again, assuming $\alpha=0.05$) such as:
+- Year:GenreRole-Playing:Non_NA_Sales
+- PlatformX360
+- PlatformWii:GenreMisc
+These findings suggest that:
+- Role Playing Games correlate significantly with sales outside of North America, and potentially in an increasing fashion over time.
+- Xbox 360 generally correlates positively North American sales (note that this is a model interpretation and not a hard-and-fast truth).
+- Miscellaneous genre games on the Wii console correlate positively with North American sales.
+
+While these findings may be interesting, we can also examine the results from another model we tested: `bic_back_mod`, the model chosen using backwards stepwise predictor selection with Bayesian Information Criterion (BIC). 
 
 ```{r}
 summary(bic_back_mod)
 ```
 
-Taking a look at the test statistics and associated P-Values for the predictors in this model, we can attempt to take a peek into what might be considered a "translucent box" in terms of the model's inner workings. For example, we can see quite a few interactions which have positive Estimates and statistically significant P-Values (again, assuming $\alpha=0.05$) such as:
+In a similar fashion to our most predictive model, we can note positive Estimates and significant P-Values for various predictors:
 - PlatformWii
 - GenreSports
 - GenreShooter
@@ -371,13 +389,14 @@ Several interactions which utilized the `Year` predictor were also found to be s
 - PlatformPS4:Year:Non_NA_Sales
 The slightly-positive Estimates for these terms possibly suggest that sales increased with subsequent years for these platforms, outside of North America.
 
-However, it is important to restrain our interpretations with the knowledge that linear statistical models function predicated on the assumption of "LINE": Linearity, Independence, Normality, and Equal Variance (homoscedasticity). Based on the Fitted vs. Residuals plot, QQ-Plot, and Shapiro-Wilkes test performed earlier prior to model selection, we know that these assumptions do not hold true. For example, we cannot assume equal variance of residual for all predictor values, and we cannot assume that the residuals follow a normal distribution when we are already confident that they do not.
+However, it is important to restrain our interpretations with the knowledge that linear statistical models function predicated on the assumption of "LINE": Linearity, Independence, Normality, and Equal Variance (homoscedasticity). Based on the Fitted vs. Residuals plot, QQ-Plot, and Shapiro-Wilkes test performed earlier prior to model selection, we know that these assumptions do not hold true. For example, we cannot assume equal variance of residual for all predictor values, and we cannot assume that the residuals follow a normal distribution when we are already confident that they do not. We can also acknowledge that our models, while at time complex, did not utilize transformations using logarithms or exponents. However, we don't feel that this was warranted given our findings, or that their inclusion would significantly impact the models' accuracies or our ultimate recommendation. The highest accuracy interactive models selected (i.e. `bic_back_mod` and `all_intr_mod`) likely suffer from overfitting due to their relative complexity. Steps to mitigate this in future studies are recommended further in this document.
 
-Given the findings from our best model, given that that model is highly-complex and somewhat challenging to interpert (due to its' complexity and possible overfitting), and combined with the knowledge that the underlying data does not follow the typical assumptions of a linear model, **we recommend that our company pursue developing and releasing video games for the North American market for Nintendo platforms, and in the genres of "Sports" and "Shooter".** This is based on the significance of terms associated with these genres as well as with the Wii and DS (a portable Nintendo system) platforms. This recommendation is informed by our knowledge that this dataset is also limited to video game sales prior to 2016, and would have no knowledge of current Nintendo platforms such as the Nintendo Switch. 
+Given the findings from two different models (including our most predictive model), given that that the models are highly-complex and somewhat challenging to interpret (due to their complexity and possible overfitting), and combined with the knowledge that the underlying data does not follow the typical assumptions of a linear model, **we recommend that our company pursue developing and releasing video games for the North American market for Nintendo platforms, and in the genres of "Sports", "Shooter", and "Role-Playing".** This is based on the significance of terms associated with these genres as well as with the Wii and DS (a portable Nintendo system) platforms. This recommendation is informed by our knowledge that this dataset is also limited to video game sales prior to 2016, and would have no knowledge of current Nintendo platforms such as the Nintendo Switch. It is also important to note that while `PlatformX360` was found to be a statistically-significant predictor in our best-performing model, this knowledge does not significantly influence our decision as the Xbox 360 has reached end-of-support from Microsoft and was subsequently replaced with the Xbox One and again with the Xbox Series X. Given the success of multiple Nintendo platforms we are confident in our recommendation.
 
-We also recommend concurrently that our data analysis team find, extract, and repeat this model using new data which incorporates video game sales from 2016 to 2023. We would expect new models to suggest growth potential in Nintendo platforms in these genres consistent with our findings.
+We also recommend concurrently that our data analysis team find, extract, and repeat this model using new data which incorporates video game sales from 2016 to 2023. We would expect new models to suggest growth potential in Nintendo platforms in these genres consistent with our findings. The new model should also leverage new datasets whenever possible. The models created in our experiments were limited, and consisted largely of categorical or character values while linear regressions perform optimally with continuous numerical data. Information such as user surveys or video game review scores may aid to research in this manner. Mitigations for potential overfitting in future iterations and experiments include multiple-fold cross-validation (CV). This would likely result in lower overall accuracy but would carry the added benefit of the selected models better generalizing to unseen data.
 
 
+--- 
 
 ## Appendix
 
