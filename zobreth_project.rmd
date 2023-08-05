@@ -278,6 +278,87 @@ Clearly, the errors of our model are not normally distributed, as the plot shows
 *Numerical or graphical summaries of your results.*
 *You should report a final model you have chosen. There is not necessarily one, singular correct model, but certainly some methods and models are better than others in certain situations. You may use any methods we studied this semester to complete this task, and provide evidence that your final choice of model is a good one. *
 
+In the following figures, we show bar plots for the R^2 values and RMSE. We observe that for "all_intr_mod", "bic_back_mod" and "intuitive_mod" and "intuitive_mod2" have the highest R^2 values. For the RMSE bar plot, these 4 models also have the lowest RMSE. 
+
+```{r}
+# Given data
+data <- data.frame(
+  Model = c("all_intr_mod", "all_mod", "foreign_sales_mod", "intuitive_mod", "intuitive_mod2", "bic_back_mod"),
+  R_Squared = c(summary(all_intr_mod)$adj.r.squared, 
+              summary(all_mod)$adj.r.squared, 
+              summary(foreign_sales_mod)$adj.r.squared, 
+              summary(intuitive_mod)$adj.r.squared, 
+              summary(intuitive_mod2)$adj.r.squared,
+              summary(bic_back_mod)$adj.r.squared),
+  RMSE = c(sqrt(mean(resid(all_intr_mod) ^ 2)), 
+            sqrt(mean(resid(all_mod) ^ 2)), 
+            sqrt(mean(resid(foreign_sales_mod) ^ 2)), 
+            sqrt(mean(resid(intuitive_mod) ^ 2)), 
+            sqrt(mean(resid(intuitive_mod2) ^ 2)), 
+            sqrt(mean(resid(bic_back_mod) ^ 2)))
+)
+
+# Reshape the data to a long format using gather (tidyr)
+data_long <- data %>%
+  gather(metric, value, -Model)
+
+# Install and load required libraries (if not already installed and loaded)
+# install.packages("ggplot2")
+library(ggplot2)
+
+# Bar plot for R_Squared
+ggplot(data_long[data_long$metric == "R_Squared", ], aes(x = Model, y = value)) +
+  geom_col(fill = "blue") +
+  labs(x = "Model", y = "R_Squared") +
+  ggtitle("R_Squared for Different Models") +
+  theme_minimal()
+
+# Bar plot for RMSE
+ggplot(data_long[data_long$metric == "RMSE", ], aes(x = Model, y = value)) +
+  geom_col(fill = "green") +
+  labs(x = "Model", y = "RMSE") +
+  ggtitle("RMSE for Different Models") +
+  theme_minimal()
+
+```
+
+Looking at the above charts values, we see the large model with many fully interacting predictors has the best metrics. This is unsurprising, since adding more and more predictors and interactions generally produces better predictions, but can become confusing and loses ability to interpret meaning between variables.
+
+To conduct a comprehensive comparison of the four models, namely "all_intr_mod", "bic_back_mod" and "intuitive_mod" and "bic_back_mod2". We conducted ANOVA tests on each pair of them. From the following tables, we see that all p-values are significant. A positive "Sum of Sq" indicates that Model 1 explains more variance than Model 2. Conversely, a negative "Sum of Sq" indicates that Model 2 explains more variance than Model 1. By referring to the table, we have "all_intr_mod" having better performance than "bic_back_mod", "intuitive_mod" and "intuitive_mod2". Then we have "intuitive_mod2" having statically  better performance than "bic_back_mod" and "intuitive_mod1". In the end, we have "bic_back_mod" having better performance than "intuitive_mod1". In summary, we can rank the best performing modeling to the least performance model as following "all_intr_mod">"intuitive_mod2">"bic_back_mod">"intuitive_mod1". 
+
+
+```{r}
+
+
+# Perform ANOVA between all_intr_mod and bic_back_mod
+anova1 <- anova(all_intr_mod, bic_back_mod) #(all intr)
+
+# Perform ANOVA between all_intr_mod and intuitive_mod
+anova2 <- anova(all_intr_mod,intuitive_mod) # (all_intro)
+
+# Perform ANOVA between all_intr_mod and intuitive_mod2
+anova3 <- anova(all_intr_mod, intuitive_mod2)  # (all_intro)
+
+# Perform ANOVA between bic_back_mod and intuitive_mod
+anova4 <- anova(bic_back_mod,intuitive_mod) # (back)
+
+# Perform ANOVA between bic_back_mod and intuitive_mod2
+anova5 <- anova(bic_back_mod,intuitive_mod2) # (intuitive_mod2)
+
+# Perform ANOVA between intuitive_mod and intuitive_mod2
+anova6 <- anova(intuitive_mod, intuitive_mod2) # (intuit 2)
+
+# Extract ANOVA results
+print(anova1)
+print(anova2)
+print(anova3)
+print(anova4)
+print(anova5)
+print(anova6)
+
+```
+
+The "all_intr_mod" model's improved performance can be attributed to its inclusion of the interaction terms, which allowed for a more accurate and nuanced representation of the relationship between the predictors and the response variable, NA_Sales. 
 
 ## Discussion
 In the context of our original business problem, the results indicate that it (IS/IS NOT) in the interest of our video game company to enter the North American market. This conclusion is informed by:
